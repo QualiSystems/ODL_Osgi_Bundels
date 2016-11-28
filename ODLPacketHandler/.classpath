@@ -44,4 +44,6 @@
   <classpathentry kind="var" path="M2_REPO/equinoxSDK381/org.eclipse.osgi/3.8.1.v20120830-144521/org.eclipse.osgi-3.8.1.v20120830-144521.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/opendaylight/controller/sal.connection/0.1.5-Helium-SR3/sal.connection-0.1.5-Helium-SR3.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/opendaylight/controller/thirdparty/org.openflow.openflowj/1.0.2/org.openflow.openflowj-1.0.2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/googlecode/json-simple/json-simple/1.1/json-simple-1.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/json/json/20090211/json-20090211.jar"/>
 </classpath>

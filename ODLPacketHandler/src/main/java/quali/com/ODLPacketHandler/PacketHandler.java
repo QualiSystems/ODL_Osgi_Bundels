@@ -1,4 +1,10 @@
 package quali.com.ODLPacketHandler;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -32,12 +38,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Path;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonSerializer;
+
+import sun.misc.IOUtils;
+
+import org.json.*;
+import org.json.simple.parser.JSONParser;
 
 public class PacketHandler implements IListenDataPacket{
  
     private static final Logger log = LoggerFactory.getLogger(PacketHandler.class);
     private IDataPacketService dataPacketService;
-
+    String check_dir = "/home/shellroutes";
     private IFlowProgrammerService flowProgrammerService;
     static private InetAddress intToInetAddress(int i) {
         byte b[] = new byte[] { (byte) ((i>>24)&0xff), (byte) ((i>>16)&0xff), (byte) ((i>>8)&0xff), (byte) (i&0xff) };
@@ -114,6 +127,7 @@ public class PacketHandler implements IListenDataPacket{
     @Override
     public PacketResult receiveDataPacket(RawPacket inPkt) {
     	
+    	synchronized (this) {
         // The connector, the packet came from ("port")
         NodeConnector ingressConnector = inPkt.getIncomingNodeConnector();
         // The node that received the packet ("switch")
@@ -121,6 +135,7 @@ public class PacketHandler implements IListenDataPacket{
         
         //"OF|1@OF|00:00:00:00:00:00:00:01"
         // Use DataPacketService to decode the packet.
+        
         Packet l2pkt = dataPacketService.decodeDataPacket(inPkt);
         
 
@@ -135,15 +150,106 @@ public class PacketHandler implements IListenDataPacket{
                 int dstAddr = ipv4Pkt.getDestinationAddress();
                 int srcAddr = ipv4Pkt.getSourceAddress();
                 NodeConnector incoming_connector = inPkt.getIncomingNodeConnector();
-             
+                System.out.println("incoming_connector");
+                System.out.println(incoming_connector);
                 NodeConnector nc1 = NodeConnector.fromString("OF|1@OF|00:00:00:00:00:00:00:01");
                 
+                
+                String[] connector_parts = incoming_connector.toString().split("\\|");
+                
+                String connector_port = connector_parts[1].split("\\@")[0];
+                System.out.println("connector_port");
+                System.out.println(connector_port);
+                String connector_id = connector_parts[2];
 
+                System.out.println(connector_id);
+                
+                String filePathString = check_dir + "/" + connector_id + "_" + connector_port + ".txt";
+                BufferedReader reader = null;
+                if(new File(filePathString).isFile())
+                {
+				try {
+					reader = new BufferedReader(new FileReader(filePathString));
+				} catch (FileNotFoundException e1) {
+					// TODO Auto-generated catch block
+					System.out.println(e1);
+				}
+                String json = "";
+                try {
+                    StringBuilder sb = new StringBuilder();
+                    String line = reader.readLine();
 
+                    while (line != null) {
+                        sb.append(line);
+                        sb.append("\n");
+                        line = reader.readLine();
+                    }
+                    json = sb.toString();
+                } catch (IOException e) {
+					// TODO Auto-generated catch block
+                	System.out.println(e);
+				} finally {
+                    try {
+						reader.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						System.out.println(e);
+					}
+                }
                 
                 
-                InetAddress addr = intToInetAddress(dstAddr);
-                System.out.println("Pkt. to " + addr.toString() + " received by node " + node.getNodeIDString() + " on connector " + ingressConnector.getNodeConnectorIDString());
+                JSONObject obj = null;
+				try {
+					obj = new JSONObject(json);
+					System.out.println("obj.length()");
+					System.out.println(obj.length());
+				} catch (JSONException e1) {
+					// TODO Auto-generated catch block
+					System.out.println(e1);
+				} // this will get you the entire JSON node
+				PacketResult status_installed_flow =  null;
+                
+				try {
+
+					for (int i=0; i<obj.getJSONObject("route").length()/2;i++)
+					{
+						System.out.println("i"+i);
+						
+						String switch_id = obj.getJSONObject("route").getString("switch" + i);
+						String ports = obj.getJSONObject("route").getString("port" + i);
+						String[] port_arr = ports.toString().split("\\-");
+						int in_port = Integer.parseInt(port_arr[0]);
+						int out_port = Integer.parseInt(port_arr[1]);
+						System.out.println(switch_id);
+						System.out.println(in_port);
+						System.out.println(out_port);
+						Node node1 = NodeCreator.createOFNode(Long.parseLong(switch_id));
+	                    NodeConnector ingress_port = NodeConnectorCreator.createOFNodeConnector(
+	                            (short) in_port, node1);
+	                    NodeConnector egress_port = NodeConnectorCreator.createOFNodeConnector(
+	                            (short) out_port, node1);
+	                    Object l4Datagram = ipv4Pkt.getPayload();
+	                    short ethertype = EtherTypes.IPv4.shortValue();
+	                    InetAddress dst_addr = intToInetAddress(dstAddr);
+	                    InetAddress src_addr = intToInetAddress(srcAddr);
+	                    System.out.println("Pkt. to " + dst_addr.toString() + " received by node " + node.getNodeIDString() + " on connector " + ingressConnector.getNodeConnectorIDString());
+	                    status_installed_flow =  this.InstallFlow(node1,ingress_port,egress_port,dst_addr,src_addr,ethertype);
+						
+						
+					}
+					
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+					System.out.println(e1);
+				} // put in whatever your JSON data name here, this will get you an array of all the nodes
+                
+                
+               
+                    
+                
+                }
+                
+
                 
 
                 /*node1.toString()
@@ -152,89 +258,15 @@ public class PacketHandler implements IListenDataPacket{
                 OF|24@OF|00:00:00:00:00:00:04:1f
                 */
                 
-                Object l4Datagram = ipv4Pkt.getPayload();
-                Node node1 = NodeCreator.createOFNode(1l);
-                System.out.println("node1.toString()");
-                	System.out.println(node1.toString());
-                    NodeConnector port = NodeConnectorCreator.createOFNodeConnector(
-                            (short) 1, node1);
-                    System.out.println("port");
-                    System.out.println(port);
-                    NodeConnector oport = NodeConnectorCreator.createOFNodeConnector(
-                            (short) 30, node1);
-                    byte srcMac[] = { (byte) 0x12, (byte) 0x34, (byte) 0x56, (byte) 0x78,
-                            (byte) 0x9a, (byte) 0xbc };
-                    byte dstMac[] = { (byte) 0x1a, (byte) 0x2b, (byte) 0x3c, (byte) 0x4d,
-                            (byte) 0x5e, (byte) 0x6f };
-                	
-                    InetAddress srcIP = null;
-                    InetAddress ipMask = null;
-                    InetAddress dstIP = null;
-                    InetAddress newIP = null;
-                    InetAddress ipMask2 = null;
-   
-					try {
-						srcIP = InetAddress.getByName("172.28.30.50");
-
-                     dstIP = InetAddress.getByName("171.71.9.52");
-                     newIP = InetAddress.getByName("200.200.100.1");
-                    ipMask = InetAddress.getByName("255.255.255.0");
-                     ipMask2 = InetAddress.getByName("255.240.0.0");
-					} catch (UnknownHostException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-                    short ethertype = EtherTypes.IPv4.shortValue();
-                    short vlan = (short) 27;
-                    byte vlanPr = 3;
-                    Byte tos = 4;
-                    byte proto = IPProtocols.TCP.byteValue();
-                    short src = (short) 55000;
-                    short dst = 80;
-
-                    /*
-                     * Create a SAL Flow aFlow
-                     */
-                    Match match = new Match();
-                    match.setField(MatchType.IN_PORT, port);
-                    match.setField(MatchType.DL_SRC, srcMac);
-                    match.setField(MatchType.DL_DST, dstMac);
-                    match.setField(MatchType.DL_TYPE, ethertype);
-                    match.setField(MatchType.DL_VLAN, vlan);
-                    match.setField(MatchType.DL_VLAN_PR, vlanPr);
-                    match.setField(MatchType.NW_SRC, srcIP, ipMask);
-                    match.setField(MatchType.NW_DST, dstIP, ipMask2);
-                    match.setField(MatchType.NW_TOS, tos);
-                    match.setField(MatchType.NW_PROTO, proto);
-                    match.setField(MatchType.TP_SRC, src);
-                    match.setField(MatchType.TP_DST, dst);
-
-                    List<Action> actions = new ArrayList<Action>();
-                    actions.add(new SetNwDst(newIP));
-                    actions.add(new Output(oport));
+                
 
 
-                    Flow flow = new Flow(match, actions);
-                    flow.setPriority((short) 100);
-                    flow.setHardTimeout((short) 360);
 
-                	
-                	
-
-                    // Use FlowProgrammerService to program flow.
-                    Status status = flowProgrammerService.addFlow(node1, flow);
-                    if (!status.isSuccess()) {
-                    	System.out.println("EROORRORRORO!!!!!!!!"+ status.getDescription());
-                        log.error("Could not program flow: " + status.getDescription());
-                        return PacketResult.CONSUME;
-                    }
-                    else{
-                    	System.out.println("Flow installed");
-                    }
-                	
 
             
-            }
+
+            
+           
         
 
            
@@ -245,20 +277,57 @@ public class PacketHandler implements IListenDataPacket{
                             //log.info("Received packet for load balanced service");
          
 
-
-
                 
                 
                 
                 
-                return PacketResult.KEEP_PROCESSING;
+            } //synchronized
+            }
             }
         
         // We did not process the packet -> let someone else do the job.
-        return PacketResult.IGNORED;
+    	return PacketResult.CONSUME;
+        
     }
     
+    private PacketResult InstallFlow(Node node1,NodeConnector in_port,NodeConnector out_port,InetAddress dstAddr,InetAddress srcAddr,short ethertype)
+    {
+        /*
+         * Create a SAL Flow aFlow
+         */
+        Match match = new Match();
+        match.setField(MatchType.IN_PORT, in_port);
+        match.setField(MatchType.DL_TYPE, ethertype);
 
+        //match.setField(MatchType.NW_PROTO, proto);
+        match.setField(MatchType.NW_DST, dstAddr);
+        match.setField(MatchType.NW_SRC, srcAddr);
+        List<Action> actions = new ArrayList<Action>();
+        //actions.add(new SetNwDst(newIP));
+        actions.add(new Output(out_port));
+
+
+        Flow flow = new Flow(match, actions);
+        flow.setPriority((short) 500);
+        flow.setIdleTimeout((short) 100);
+
+    	
+    	
+
+        // Use FlowProgrammerService to program flow.
+        Status status = flowProgrammerService.addFlow(node1, flow);
+        if (!status.isSuccess()) {
+        	System.out.println("EROORRORRORO!!!!!!!!"+ status.getDescription());
+            log.error("Could not program flow: " + status.getDescription());
+            return PacketResult.IGNORED;
+            
+        }
+        else{
+        	System.out.println("Flow installed");
+        }
+        return PacketResult.CONSUME;
+    	
+    }
 	
 	/*
 
