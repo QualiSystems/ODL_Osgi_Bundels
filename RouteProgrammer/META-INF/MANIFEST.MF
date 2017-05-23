@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1480325789396
-Build-Jdk: 1.8.0_111
-Built-By: luiza
+Bnd-LastModified: 1495543629385
+Build-Jdk: 1.8.0_131
+Built-By: anthony
 Bundle-ManifestVersion: 2
 Bundle-Name: northbound
 Bundle-SymbolicName: org.quali.com.routeprogrammer.northbound

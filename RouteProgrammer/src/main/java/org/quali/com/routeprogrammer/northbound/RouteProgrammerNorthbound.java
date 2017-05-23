@@ -57,11 +57,9 @@ import org.json.*;
 //import org.json.simple.JSONObject;
 
 
-
-
 /**
  * Flow Configuration Northbound API provides capabilities to program flows.
- *
+ * <p>
  * <br>
  * <br>
  * Authentication scheme : <b>HTTP Basic</b><br>
@@ -69,19 +67,19 @@ import org.json.*;
  * Transport : <b>HTTP and HTTPS</b><br>
  * <br>
  * HTTPS Authentication is disabled by default.
- *
  */
 @Path("/")
 public class RouteProgrammerNorthbound {
 
     private String username;
-    
+
     private QueryContext queryContext;
+
     @Context
     public void setQueryContext(ContextResolver<QueryContext> queryCtxResolver) {
-      if (queryCtxResolver != null) {
-        queryContext = queryCtxResolver.getContext(QueryContext.class);
-      }
+        if (queryCtxResolver != null) {
+            queryContext = queryCtxResolver.getContext(QueryContext.class);
+        }
     }
 
     @Context
@@ -96,97 +94,85 @@ public class RouteProgrammerNorthbound {
     }
 
 
-    
     @Path("/shellroute")
     @GET
-    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @StatusCodes({
-        @ResponseCode(code = 200, condition = "Flow Config processed successfully"),
-        @ResponseCode(code = 401, condition = "User not authorized to perform this operation"),
-        @ResponseCode(code = 404, condition = "The Container Name or Node-id or Flow Name passed is not found"),
-        @ResponseCode(code = 406, condition = "Failed to delete Flow config due to invalid operation. Failure details included in HTTP Error response"),
-        @ResponseCode(code = 500, condition = "Failed to delete Flow config. Failure Reason included in HTTP Error response"),
-        @ResponseCode(code = 503, condition = "One or more of Controller service is unavailable") })
+            @ResponseCode(code = 200, condition = "Flow Config processed successfully"),
+            @ResponseCode(code = 401, condition = "User not authorized to perform this operation"),
+            @ResponseCode(code = 404, condition = "The Container Name or Node-id or Flow Name passed is not found"),
+            @ResponseCode(code = 406, condition = "Failed to delete Flow config due to invalid operation. Failure details included in HTTP Error response"),
+            @ResponseCode(code = 500, condition = "Failed to delete Flow config. Failure Reason included in HTTP Error response"),
+            @ResponseCode(code = 503, condition = "One or more of Controller service is unavailable")})
     public Response toggleFlow1(
             @PathParam("shellroute") String shellroute) {
 
 
-        
         System.out.println("#######ROUTE2!!!!!!!");
 
-        
-          
+
         return Response.ok().build();
     }
-    
-     
-      @Path("/hi/{id}")
-      @POST
-      @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-      @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-      //throws Exceptionp
-      public Response sayPlainTextHello(@PathParam("id") JSONObject inputJsonObj) throws JSONException  
-      {
-    	System.out.println("jsjsjsjsj");
+
+
+    @Path("/hi/{id}")
+    @POST
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    //throws Exceptionp
+    public Response sayPlainTextHello(@PathParam("id") JSONObject inputJsonObj) throws JSONException {
+        System.out.println("jsjsjsjsj");
         String input = (String) inputJsonObj.get("input");
-        
-
-
 
 
         return Response.ok().build();
-      }
-      
-    
+    }
+
 
     @Path("/shellroute/sourcenode/{nodeId}/sourceport/{portId}/{route}")
     @GET
-    @Consumes({ MediaType.APPLICATION_JSON })
+    @Consumes({MediaType.APPLICATION_JSON})
     @StatusCodes({
-        @ResponseCode(code = 200, condition = "routingg processed successfully"),
-        @ResponseCode(code = 401, condition = "User not authorized to perform this operation"),
-        @ResponseCode(code = 404, condition = "The path not found"),
-        @ResponseCode(code = 503, condition = "One or more of Controller service is unavailable") })
-    public Response toggleFlow(@PathParam(value = "nodeId") String nodeId,@PathParam(value = "portId") String portId,@PathParam(value = "route") JSONObject inputJsonObj)
-    {
-    	
+            @ResponseCode(code = 200, condition = "routingg processed successfully"),
+            @ResponseCode(code = 401, condition = "User not authorized to perform this operation"),
+            @ResponseCode(code = 404, condition = "The path not found"),
+            @ResponseCode(code = 503, condition = "One or more of Controller service is unavailable")})
+    public Response toggleFlow(@PathParam(value = "nodeId") String nodeId, @PathParam(value = "portId") String portId, @PathParam(value = "route") JSONObject inputJsonObj) {
 
 
         String workingDir = System.getProperty("user.dir");
-        
+
 
         System.out.println("Current relative path is: " + workingDir);
-        
+
         String check_path = "/home/shellroutes";
-        
-        if (new File(check_path).exists() == false)
-        {
-        	File dir = new File(check_path);
-        	dir.mkdir();
-        	
+
+        if (new File(check_path).exists() == false) {
+            File dir = new File(check_path);
+            dir.mkdir();
+
         }
-        
+
         String destination_file = check_path + "/" + nodeId + "_" + portId + ".txt";
-        System.out.println("The path "+ destination_file);
+        System.out.println("The path " + destination_file);
         ObjectOutputStream outputStream = null;
         FileWriter file = null;
-		try {
-			file = new FileWriter(destination_file);
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			System.out.println(e1);
-		}
-			try {
-				file.write(inputJsonObj.toString());
-				file.flush();
-				file.close();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				System.out.println(e1);
-			}
-			System.out.println("Successfully Copied JSON Object to File...");
-			System.out.println("\nJSON Object: " + inputJsonObj.toString());
-	
+        try {
+            file = new FileWriter(destination_file);
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            System.out.println(e1);
+        }
+        try {
+            file.write(inputJsonObj.toString());
+            file.flush();
+            file.close();
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            System.out.println(e1);
+        }
+        System.out.println("Successfully Copied JSON Object to File...");
+        System.out.println("\nJSON Object: " + inputJsonObj.toString());
 
 
         return Response.ok().build();
@@ -227,8 +213,6 @@ public class RouteProgrammerNorthbound {
             throw new MethodNotAllowedException("Path's resource name conflicts with payload's resource name");
         }
     }
-    
-    
-    
+
 
 }
