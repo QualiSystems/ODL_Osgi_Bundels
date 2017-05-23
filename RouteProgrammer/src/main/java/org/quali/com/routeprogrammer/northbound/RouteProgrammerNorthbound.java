@@ -71,8 +71,8 @@ import org.json.*;
 @Path("/")
 public class RouteProgrammerNorthbound {
 
+    private static final String ROUTES_PATH = "/home/shellroutes";
     private String username;
-
     private QueryContext queryContext;
 
     @Context
@@ -139,24 +139,17 @@ public class RouteProgrammerNorthbound {
             @ResponseCode(code = 503, condition = "One or more of Controller service is unavailable")})
     public Response toggleFlow(@PathParam(value = "nodeId") String nodeId, @PathParam(value = "portId") String portId, @PathParam(value = "route") JSONObject inputJsonObj) {
 
+        File routesFolder = new File(ROUTES_PATH);
 
-        String workingDir = System.getProperty("user.dir");
-
-
-        System.out.println("Current relative path is: " + workingDir);
-
-        String check_path = "/home/shellroutes";
-
-        if (new File(check_path).exists() == false) {
-            File dir = new File(check_path);
-            dir.mkdir();
-
+        if (!routesFolder.exists()) {
+            routesFolder.mkdir();
         }
 
-        String destination_file = check_path + "/" + nodeId + "_" + portId + ".txt";
+        String destination_file = ROUTES_PATH + "/" + nodeId + "_" + portId + ".txt";
         System.out.println("The path " + destination_file);
         ObjectOutputStream outputStream = null;
         FileWriter file = null;
+
         try {
             file = new FileWriter(destination_file);
         } catch (IOException e1) {
@@ -174,6 +167,32 @@ public class RouteProgrammerNorthbound {
         System.out.println("Successfully Copied JSON Object to File...");
         System.out.println("\nJSON Object: " + inputJsonObj.toString());
 
+
+        return Response.ok().build();
+    }
+
+    @Path("/shellroute/sourcenode/{nodeId}/sourceport/{portId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @DELETE
+    @StatusCodes({
+            @ResponseCode(code = 200, condition = "Route was successfully deleted"),
+            @ResponseCode(code = 401, condition = "User is not authorized to perform this operation"),
+            @ResponseCode(code = 404, condition = "The path not found"),
+            @ResponseCode(code = 503, condition = "One or more of Controller service is unavailable")})
+    public Response deleteFlow(@PathParam(value = "nodeId") String nodeId, @PathParam(value = "portId") String portId) {
+
+        String routeFilePath = ROUTES_PATH + "/" + nodeId + "_" + portId + ".txt";
+        System.out.println("Routes file path: " + routeFilePath);
+
+        File routeFile = new File(routeFilePath);
+
+        if (routeFile.exists()) {
+            routeFile.delete();
+        } else {
+            System.out.println("Route " + routeFilePath + "was already deleted");
+        }
+
+        System.out.println("Successfully deleted route " + routeFilePath);
 
         return Response.ok().build();
     }
